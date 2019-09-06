@@ -342,7 +342,7 @@ class PlacePickerActivity : AppCompatActivity(), PingKoinComponent,
         return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
-    private fun handlePlaceByLocation(result: Resource<Place?>) {
+    private fun handlePlaceByLocation(result: Resource<Place?>, latlng: LatLng) {
 
         when (result.status) {
             Resource.Status.LOADING -> {
@@ -355,6 +355,10 @@ class PlacePickerActivity : AppCompatActivity(), PingKoinComponent,
             Resource.Status.ERROR -> {
                 toast(R.string.picker_load_this_place_error)
                 pbLoading.hide()
+                val data = Intent()
+                data.putExtra(PingPlacePicker.EXTRA_LATLNG, latlng)
+                setResult(Activity.RESULT_OK, data)
+                finish()
             }
         }
 
@@ -505,7 +509,7 @@ class PlacePickerActivity : AppCompatActivity(), PingKoinComponent,
     private fun selectThisPlace() {
         googleMap?.cameraPosition?.run {
             viewModel.getPlaceByLocation(target).observe(this@PlacePickerActivity,
-                    Observer { handlePlaceByLocation(it) })
+                    Observer { handlePlaceByLocation(it, target) })
         }
     }
 

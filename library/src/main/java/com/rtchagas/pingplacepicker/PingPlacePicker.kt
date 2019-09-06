@@ -98,6 +98,8 @@ class PingPlacePicker private constructor() {
 
         const val EXTRA_PLACE = "extra_place"
 
+        const val EXTRA_LATLNG= "extra_latlng"
+
         var androidApiKey: String = ""
         var mapsApiKey: String = ""
 
@@ -108,6 +110,12 @@ class PingPlacePicker private constructor() {
         @JvmStatic
         fun getPlace(intent: Intent): Place? {
             return intent.getParcelableExtra(EXTRA_PLACE)
+        }
+
+
+        @JvmStatic
+        fun getLatLng(intent: Intent): LatLng? {
+            return intent.getParcelableExtra(EXTRA_LATLNG)
         }
     }
 }
