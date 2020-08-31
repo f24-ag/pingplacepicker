@@ -124,6 +124,7 @@ class PingPlacePicker private constructor() {
         @JvmStatic
         fun getLatLng(intent: Intent): LatLng? {
             return intent.getParcelableExtra(EXTRA_LATLNG)
+        }
 
         @JvmStatic
         fun getActualLatLng(intent: Intent): LatLng? {
