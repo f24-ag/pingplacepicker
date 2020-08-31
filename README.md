@@ -1,5 +1,5 @@
 # PING - Because Ping Is Not Google's Place Picker 😉
-[![](https://jitpack.io/v/rtchagas/pingplacepicker.svg)](https://jitpack.io/#rtchagas/pingplacepicker)
+[![](https://jitpack.io/v/rtchagas/pingplacepicker.svg)](https://jitpack.io/#rtchagas/pingplacepicker) [![](https://img.shields.io/badge/MinSDK-19-blue)](#)
 
  
 If you're here looking for a place picker you have probably read this:
@@ -11,7 +11,7 @@ The main reason was due the new pricing model of the [Places API](https://develo
 
 **PING** Place Picker is here to help you to (almost) plug-and-play replace the original Google's Place Picker.
 
-<img src="images/screenshot_1.jpg" alt="Map expanded" width="210"/> <img src="images/screenshot_4.jpg" alt="Place selected" width="210"/> <img src="images/screenshot_2.jpg" alt="Results expanded" width="210"/> <img src="images/screenshot_3.jpg" alt="Search result" width="210"/>
+<img src="images/screenshot_1.jpg" alt="Map expanded" width="210"/> <img src="images/screenshot_4.jpg" alt="Place selected" width="210"/> <img src="images/screenshot_2.jpg" alt="Results expanded" width="210"/> <img src="images/screenshot_6.jpg" alt="Search result" width="210"/>
 
 ## A key difference
 
@@ -51,21 +51,25 @@ It is worth to notice that Google provides US$ 200 (free) per month to be used w
 
 Add Jitpack in your root build.gradle at the end of repositories:
 
-	allprojects {
-		repositories {
-			...
-			maven { url 'https://jitpack.io' }
-		}
-	}
-  
+```gradle
+    allprojects {
+        repositories {
+            ...
+            maven { url 'https://jitpack.io' }
+        }
+    }
+```
+
 Step 2. Add the dependency
 
-	dependencies {
-	        // Places library  
+```gradle
+    dependencies {
+            // Places library
             implementation 'com.google.android.libraries.places:places:2.0.0'
-	        // PING Place Picker
-	        implementation 'com.github.rtchagas:pingplacepicker:1.1.+'
-	}
+            // PING Place Picker
+            implementation 'com.github.rtchagas:pingplacepicker:2.0.+'
+    }
+```
 
 ## Setup
 
@@ -162,13 +166,108 @@ As some features are charged by Google, you can alter the default **PING** Place
 
 <!-- 0.007 USD per each (7.00 USD per 1000) -->  
 <bool name="show_confirmation_map">true</bool>
+
+<!-- If true, the map will automatically center (pan) to
+     the selected marker -->
+<bool name="auto_center_on_marker_click">false</bool>
 ```
+
+## Theming
+
+PING is fully customizable and you just need to override some colors to make it seamlessly connected to your app.
+
+Since release [2.0.0](https://github.com/rtchagas/pingplacepicker/releases/tag/2.0.0) PING supports dark/night mode by default.<br/>
+Please make sure your app provide the correct resources to switch to night mode.
+
+You can always refer to [Material Design documentation](https://material.io/develop/android/theming/dark) to know more about dark theme and how to implement it.
+
+To customize PING you need to override these colors:
+
+For day/light theme:
+
+- `res/values/colors.xml`
+
+```xml
+
+    <!-- Toolbar color, places icons, text on top of primary surfaces -->
+    <color name="colorPrimary">@color/material_teal500</color>
+    <color name="colorPrimaryDark">@color/material_teal800</color>
+    <color name="colorOnPrimary">@color/material_white</color>
+
+    <!-- Accent color in buttons and actions -->
+    <color name="colorSecondary">@color/material_deeporange500</color>
+    <color name="colorSecondaryDark">@color/material_deeporange800</color>
+    <color name="colorOnSecondary">@color/material_white</color>
+
+    <!-- Main activity background -->
+    <color name="colorBackground">@color/material_grey200</color>
+    <color name="colorOnBackground">@color/material_black</color>
+
+    <!-- Cards and elevated views background -->
+    <color name="colorSurface">@color/material_white</color>
+    <color name="colorOnSurface">@color/material_black</color>
+
+    <!-- Text colors -->
+    <color name="textColorPrimary">@color/material_on_surface_emphasis_high_type</color>
+    <color name="textColorSecondary">@color/material_on_surface_emphasis_medium</color>
+
+    <color name="colorMarker">@color/material_deeporange400</color>
+    <color name="colorMarkerInnerIcon">@color/material_white</color>
+
+```
+
+For night/dark theme:
+
+- `res/values-night/colors.xml`
+
+```xml
+
+    <color name="colorPrimary">@color/material_teal300</color>
+    <!-- Let the primary dark color as the surface color to not colorfy the status bar -->
+    <color name="colorPrimaryDark">@color/colorSurface</color>
+    <color name="colorOnPrimary">@color/material_black</color>
+
+    <color name="colorSecondary">@color/material_deeporange200</color>
+    <color name="colorSecondaryDark">@color/material_deeporange300</color>
+    <color name="colorOnSecondary">@color/material_black</color>
+
+    <color name="colorBackground">@color/colorSurface</color>
+    <color name="colorOnBackground">@color/colorOnSurface</color>
+
+    <color name="colorSurface">#202125</color>
+    <color name="colorOnSurface">@color/material_white</color>
+
+    <color name="textColorPrimary">@color/material_on_surface_emphasis_high_type</color>
+    <color name="textColorSecondary">@color/material_on_surface_emphasis_medium</color>
+
+    <color name="colorMarker">@color/material_deeporange200</color>
+    <color name="colorMarkerInnerIcon">@color/colorSurface</color>
+
+```
+
+In case of doubt in how to implement the new styles, please take a look at the [sample app](https://github.com/rtchagas/pingplacepicker/tree/master/sample).
 
 ## Contribute
 
 Let's together make PING awesome!
 
 Please feel free to contribute with improvements.
+
+## License
+
+    Copyright 2020 Rafael Chagas
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
 <!--stackedit_data:
 eyJoaXN0b3J5IjpbLTE2OTEwOTMwMTIsNjk1MDQ1MzY0LDE4NT
