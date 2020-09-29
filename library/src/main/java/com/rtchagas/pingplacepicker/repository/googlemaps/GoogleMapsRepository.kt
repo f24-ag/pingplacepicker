@@ -7,20 +7,21 @@ import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.model.PlaceLikelihood
 import com.google.android.libraries.places.api.net.FetchPhotoRequest
-import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindCurrentPlaceRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.rtchagas.pingplacepicker.Config
 import com.rtchagas.pingplacepicker.PingPlacePicker
 import com.rtchagas.pingplacepicker.model.SearchResult
+import com.rtchagas.pingplacepicker.model.SimplePlace
 import com.rtchagas.pingplacepicker.repository.PlaceRepository
 import io.reactivex.Single
+import java.util.*
 
 
 class GoogleMapsRepository constructor(
-        private val googleClient: PlacesClient,
-        private val googleMapsAPI: GoogleMapsAPI)
-    : PlaceRepository {
+    private val googleClient: PlacesClient,
+    private val googleMapsAPI: GoogleMapsAPI
+) : PlaceRepository {
 
 
     /**
@@ -45,9 +46,8 @@ class GoogleMapsRepository constructor(
                     }
                     // Empty result
                     emitter.onSuccess(listOf())
-                }
-                else {
-                    emitter.onError(task.exception ?: Exception("No places for you..."))
+                } else {
+                    emitter.tryOnError(task.exception ?: Exception("No places for you..."))
                 }
             }
         }
@@ -64,22 +64,13 @@ class GoogleMapsRepository constructor(
         val locationParam = "${location.latitude},${location.longitude}"
 
         return googleMapsAPI.searchNearby(locationParam, PingPlacePicker.mapsApiKey)
-                .flatMap { searchResult ->
-
-                    val singles = mutableListOf<Single<Place>>()
-
-                    searchResult.results.forEach {
-                        singles.add(getPlaceById(it.placeId))
-                    }
-
-                    return@flatMap Single.zip(singles) { listOfResults ->
-                        val places = mutableListOf<Place>()
-                        listOfResults.forEach {
-                            places.add(it as Place)
-                        }
-                        return@zip places
-                    }
+            .map { searchResult ->
+                val placeList = mutableListOf<CustomPlace>()
+                for (simplePlace in searchResult.results) {
+                    placeList.add(mapToCustomPlace(simplePlace))
                 }
+                placeList
+            }
     }
 
     /**
@@ -93,16 +84,16 @@ class GoogleMapsRepository constructor(
 
         // Create a FetchPhotoRequest.
         val photoRequest = FetchPhotoRequest.builder(photoMetadata)
-                .setMaxWidth(Config.PLACE_IMG_WIDTH)
-                .setMaxHeight(Config.PLACE_IMG_HEIGHT)
-                .build()
+            .setMaxWidth(Config.PLACE_IMG_WIDTH)
+            .setMaxHeight(Config.PLACE_IMG_HEIGHT)
+            .build()
 
         return Single.create { emitter ->
             googleClient.fetchPhoto(photoRequest).addOnSuccessListener {
                 val bitmap = it.bitmap
                 emitter.onSuccess(bitmap)
             }.addOnFailureListener {
-                emitter.onError(it)
+                emitter.tryOnError(it)
             }
         }
     }
@@ -113,36 +104,17 @@ class GoogleMapsRepository constructor(
      * [Places SDK for Android Usage and
        Billing](https://developers.google.com/maps/documentation/geocoding/usage-and-billing#pricing-for-the-geocoding-api)
      */
-    override fun getPlaceByLocation(location: LatLng): Single<Place?> {
+    override fun getPlaceByLocation(location: LatLng): Single<Place> {
 
         val paramLocation = "${location.latitude},${location.longitude}"
 
         return googleMapsAPI.findByLocation(paramLocation, PingPlacePicker.mapsApiKey)
-                .flatMap { result: SearchResult ->
-                    if (("OK" == result.status) && result.results.isNotEmpty()) {
-                        return@flatMap getPlaceById(result.results[0].placeId)
-                    }
-                    return@flatMap Single.just(null)
+            .map { result: SearchResult ->
+                if (("OK" == result.status) && result.results.isNotEmpty()) {
+                    return@map mapToCustomPlace(result.results[0])
                 }
-    }
-
-    /**
-     * This call to Google Places API is totally free :)
-     */
-    private fun getPlaceById(placeId: String): Single<Place> {
-
-        // Create the request
-        val request = FetchPlaceRequest.builder(placeId, getPlaceFields()).build()
-
-        return Single.create { emitter ->
-            googleClient.fetchPlace(request)
-                    .addOnSuccessListener {
-                        emitter.onSuccess(it.place)
-                    }
-                    .addOnFailureListener {
-                        emitter.onError(it)
-                    }
-        }
+                return@map PlaceFromCoordinates(location.latitude, location.longitude)
+            }
     }
 
     /**
@@ -152,12 +124,52 @@ class GoogleMapsRepository constructor(
     private fun getPlaceFields(): List<Place.Field> {
 
         return listOf(
-                Place.Field.ID,
-                Place.Field.NAME,
-                Place.Field.ADDRESS,
-                Place.Field.LAT_LNG,
-                Place.Field.TYPES,
-                Place.Field.PHOTO_METADATAS)
+            Place.Field.ID,
+            Place.Field.NAME,
+            Place.Field.ADDRESS,
+            Place.Field.LAT_LNG,
+            Place.Field.TYPES,
+            Place.Field.PHOTO_METADATAS
+        )
+    }
+
+    private fun mapToCustomPlace(place: SimplePlace): CustomPlace {
+
+        val photoList = mutableListOf<PhotoMetadata>()
+        place.photos.forEach {
+            val photoMetadata = PhotoMetadata.builder(it.photoReference)
+                .setAttributions(it.htmlAttributions.toString())
+                .setHeight(it.height)
+                .setWidth(it.width)
+                .build()
+            photoList.add(photoMetadata)
+        }
+
+        val typeList = mutableListOf<Place.Type>()
+        place.types.forEach { simpleType ->
+            val placeType = Place.Type.values()
+                .find { it.name == simpleType.toUpperCase(Locale.US) } ?: Place.Type.OTHER
+            typeList.add(placeType)
+        }
+
+        val latLng = LatLng(place.geometry.location.lat, place.geometry.location.lng)
+
+        val address: String =
+            if (place.formattedAddress.isNotEmpty()) place.formattedAddress
+            else place.vicinity
+
+        val name: String = buildPlaceName(place.name, address)
+
+        return CustomPlace(place.placeId, name, photoList, address, typeList, latLng)
+    }
+
+    private fun buildPlaceName(originalName: String, address: String): String {
+        // We have a nice name, use it
+        if (originalName.isNotEmpty()) {
+            return originalName
+        }
+        // Return the first part of the address, usually the street + number
+        return address.split(",").first()
     }
 
     /**
